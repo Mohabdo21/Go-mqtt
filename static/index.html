@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Home Sensor Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    />
+    <!-- Load scripts in the correct order -->
+    <!-- Primary CDN sources -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+
+    <!-- Fallback script to handle CDN failures -->
+    <script>
+      // Check if Chart.js loaded successfully
+      window.addEventListener("load", function () {
+        if (typeof Chart === "undefined") {
+          console.error("Primary Chart.js CDN failed, loading fallback...");
+
+          // Load from alternative CDN
+          const chartScript = document.createElement("script");
+          chartScript.src =
+            "https://unpkg.com/chart.js@3.9.1/dist/chart.min.js";
+          chartScript.onload = function () {
+            console.log("Fallback Chart.js loaded successfully");
+
+            // Load moment adapter after Chart.js loads
+            const momentAdapter = document.createElement("script");
+            momentAdapter.src =
+              "https://unpkg.com/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js";
+            document.head.appendChild(momentAdapter);
+
+            // Notify the page to initialize charts after a short delay
+            setTimeout(function () {
+              const event = new CustomEvent("chartsReady");
+              document.dispatchEvent(event);
+            }, 500);
+          };
+          document.head.appendChild(chartScript);
+        }
+      });
+    </script>
+    <style>
+      .reading-card {
+        transition: background-color 0.3s ease;
+      }
+      .reading-card.updated {
+        background-color: #e3f2fd;
+      }
+      .card-header {
+        font-weight: bold;
+      }
+      .chart-container {
+        height: 300px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1 class="mb-4">Smart Home Sensor Dashboard</h1>
+
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card reading-card">
+            <div class="card-header">Outside Readings</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <h5>Temperature</h5>
+                  <p id="outside-temp">--°C</p>
+                </div>
+                <div class="col-md-4">
+                  <h5>Humidity</h5>
+                  <p id="outside-humidity">--%</p>
+                </div>
+                <div class="col-md-4">
+                  <h5>CO2</h5>
+                  <p id="outside-co2">-- ppm</p>
+                </div>
+              </div>
+              <div class="text-muted mt-2">
+                Last updated: <span id="outside-timestamp">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card reading-card">
+            <div class="card-header">Inside Readings</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <h5>Temperature</h5>
+                  <p id="inside-temp">--°C</p>
+                </div>
+                <div class="col-md-4">
+                  <h5>Humidity</h5>
+                  <p id="inside-humidity">--%</p>
+                </div>
+                <div class="col-md-4">
+                  <h5>CO2</h5>
+                  <p id="inside-co2">-- ppm</p>
+                </div>
+              </div>
+              <div class="text-muted mt-2">
+                Last updated: <span id="inside-timestamp">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">Temperature History</div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="temp-chart"></canvas>
+                <div
+                  id="temp-chart-error"
+                  class="alert alert-warning mt-3 d-none"
+                >
+                  Unable to load temperature chart. Please check your connection
+                  or try refreshing the page.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">Humidity History</div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="humidity-chart"></canvas>
+                <div
+                  id="humidity-chart-error"
+                  class="alert alert-warning mt-3 d-none"
+                >
+                  Unable to load humidity chart. Please check your connection or
+                  try refreshing the page.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">CO2 History</div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="co2-chart"></canvas>
+                <div
+                  id="co2-chart-error"
+                  class="alert alert-warning mt-3 d-none"
+                >
+                  Unable to load CO2 chart. Please check your connection or try
+                  refreshing the page.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="sensor-dashboard.js"></script>
+  </body>
+</html>
