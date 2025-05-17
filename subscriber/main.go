@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"mqttGo/decoder"
 	"mqttGo/rabbitmq"
 	"mqttGo/store"
 )
@@ -178,13 +178,25 @@ func worker(ctx context.Context, wg *sync.WaitGroup, messages <-chan Message, db
 func processMessage(msg Message, db *store.DB, rmqClient *rabbitmq.Client) {
 	start := time.Now()
 
-	decoded, err := decodeSensorPayload(msg.Payload)
+	script, err := decoder.LoadDecoderScript("milesight-am300.js")
 	if err != nil {
-		log.Printf("Decode error [%s]: %v", msg.Topic, err)
+		log.Printf("Decoder load error: %v", err)
 		return
 	}
 
-	if err := db.SaveDecoded(msg.Topic, decoded); err != nil {
+	decoded, err := decoder.RunDecoder(script, msg.Payload)
+	if err != nil {
+		log.Printf("Decoder run error: %v", err)
+		return
+	}
+
+	reading := &store.DecodedReading{
+		Temperature: decoded.Temperature,
+		Humidity:    decoded.Humidity,
+		CO2:         decoded.CO2,
+	}
+
+	if err := db.SaveDecoded(msg.Topic, reading); err != nil {
 		log.Printf("DB save error [%s]: %v", msg.Topic, err)
 	}
 
@@ -209,37 +221,4 @@ func publishToRabbitMQ(client *rabbitmq.Client, data SensorData) error {
 		return fmt.Errorf("marshal error: %w", err)
 	}
 	return client.Publish(data.Topic, jsonData)
-}
-
-func decodeSensorPayload(hexPayload string) (*store.DecodedReading, error) {
-	raw, err := hex.DecodeString(hexPayload)
-	if err != nil {
-		return nil, fmt.Errorf("hex decode error: %w", err)
-	}
-
-	for i := range raw {
-		raw[i] ^= xorKey
-	}
-
-	var temp, hum, co2 float64
-	for i := 0; i < len(raw)-3; i += 4 {
-		channel := raw[i]
-		typ := raw[i+1]
-		val := uint16(raw[i+2])<<8 | uint16(raw[i+3])
-
-		switch {
-		case channel == 0x03 && typ == 0x67:
-			temp = float64(val) / 10.0
-		case channel == 0x04 && typ == 0x68:
-			hum = float64(val) / 2.0
-		case channel == 0x07 && typ == 0x7d:
-			co2 = float64(val)
-		}
-	}
-
-	return &store.DecodedReading{
-		Temperature: temp,
-		Humidity:    hum,
-		CO2:         co2,
-	}, nil
 }
